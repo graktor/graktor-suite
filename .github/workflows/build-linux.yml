@@ -1,0 +1,77 @@
+name: Build Linux
+
+# AppImage packaging creates real symlinks, which needs a Linux runner (Windows requires
+# elevated privileges/Developer Mode for that electron-builder can't be given in CI). The local
+# server this app spawns is closed source, so the prebuilt linux-x64 binary is downloaded here
+# rather than compiled from source in this repo.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Fetch the prebuilt local server (linux-x64)
+        run: |
+          mkdir -p host/linux-x64
+          curl -fsSL https://pub-339115a4b0fb49f68be8268e590f7328.r2.dev/build-inputs/offline-host-linux-x64.zip -o host.zip
+          unzip -q host.zip -d host/linux-x64
+          rm host.zip
+          chmod +x host/linux-x64/Zendoria.Api
+
+      - name: Build AppImage
+        run: npx electron-builder --linux --publish never
+
+      - name: Upload to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          pip install --quiet boto3
+          python3 - <<'PY'
+          import boto3, glob, os
+
+          account_id = os.environ["R2_ACCOUNT_ID"]
+          bucket = os.environ["R2_BUCKET_NAME"]
+          s3 = boto3.client(
+              "s3",
+              endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+              aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+              region_name="auto",
+          )
+          files = glob.glob("dist/*.AppImage")
+          if not files:
+              raise SystemExit("No .AppImage produced by electron-builder")
+          for path in files:
+              key = f"releases/{os.path.basename(path)}"
+              s3.upload_file(path, bucket, key, ExtraArgs={"ContentType": "application/octet-stream"})
+              print(f"uploaded {key}")
+          PY
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          make_latest: true
+          files: dist/*.AppImage
+
+      - name: Also keep as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: graktor-suite-linux-appimage
+          path: dist/*.AppImage

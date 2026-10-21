@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Graktor</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #111318;
+    color: #e6e8ec;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  .card { text-align: center; }
+  h1 { font-size: 1.2rem; font-weight: 500; margin-bottom: 0.5rem; }
+  p { color: #9aa1ad; }
+  .spinner {
+    width: 32px; height: 32px; margin: 0 auto 1.25rem;
+    border: 3px solid #2a2e38; border-top-color: #4c6fff; border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="spinner"></div>
+    <h1>Starting Graktor…</h1>
+    <p>Usually just a moment — the very first launch can take up to half a minute while it sets itself up.</p>
+  </div>
+</body>
+</html>

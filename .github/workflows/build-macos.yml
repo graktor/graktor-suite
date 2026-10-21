@@ -1,0 +1,81 @@
+name: Build macOS
+
+# electron-builder can't cross-build a .dmg from Windows or Linux -- this needs real Apple
+# hardware, same as graktor-desktop's own macOS workflow. The local server this app spawns is
+# closed source, so the prebuilt osx-x64/osx-arm64 binaries are downloaded here rather than
+# compiled from source in this repo.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm ci
+
+      - name: Fetch the prebuilt local server (osx-x64, osx-arm64)
+        run: |
+          for arch in x64 arm64; do
+            mkdir -p "host/osx-$arch"
+            curl -fsSL "https://pub-339115a4b0fb49f68be8268e590f7328.r2.dev/build-inputs/offline-host-osx-$arch.zip" -o host.zip
+            unzip -q host.zip -d "host/osx-$arch"
+            rm host.zip
+            chmod +x "host/osx-$arch/Zendoria.Api"
+          done
+
+      - name: "Build unsigned .dmg (universal: Intel + Apple Silicon)"
+        run: npx electron-builder --mac --universal --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload to R2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          pip3 install --quiet --break-system-packages boto3
+          python3 - <<'PY'
+          import boto3, glob, os
+
+          account_id = os.environ["R2_ACCOUNT_ID"]
+          bucket = os.environ["R2_BUCKET_NAME"]
+          s3 = boto3.client(
+              "s3",
+              endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
+              aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
+              aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+              region_name="auto",
+          )
+          files = glob.glob("dist/*.dmg")
+          if not files:
+              raise SystemExit("No .dmg produced by electron-builder")
+          for path in files:
+              key = f"releases/{os.path.basename(path)}"
+              s3.upload_file(path, bucket, key, ExtraArgs={"ContentType": "application/x-apple-diskimage"})
+              print(f"uploaded {key}")
+          PY
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest build
+          make_latest: true
+          files: dist/*.dmg
+
+      - name: Also keep as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: graktor-suite-macos-dmg
+          path: dist/*.dmg

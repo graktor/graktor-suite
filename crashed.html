@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Graktor</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #111318;
+    color: #e6e8ec;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+  }
+  .card { text-align: center; max-width: 420px; padding: 2rem; }
+  h1 { font-size: 1.4rem; margin-bottom: 0.5rem; }
+  p { color: #9aa1ad; line-height: 1.5; }
+  button {
+    margin-top: 1.25rem;
+    padding: 0.6rem 1.4rem;
+    border-radius: 8px;
+    border: none;
+    background: #4c6fff;
+    color: white;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+  button:hover { background: #3c5ce0; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>Graktor couldn't start</h1>
+    <p>Its local server didn't come up. Your data is safe (it lives in files next to the app, untouched by this) — try closing and reopening the app. If this keeps happening, reinstalling usually fixes it.</p>
+    <button onclick="location.reload()">Try again</button>
+  </div>
+</body>
+</html>
