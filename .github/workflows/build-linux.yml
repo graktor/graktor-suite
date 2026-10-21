@@ -25,9 +25,7 @@ jobs:
       - name: Fetch the prebuilt local server (linux-x64)
         run: |
           mkdir -p host/linux-x64
-          curl -fsSL https://pub-339115a4b0fb49f68be8268e590f7328.r2.dev/build-inputs/offline-host-linux-x64.zip -o host.zip
-          unzip -q host.zip -d host/linux-x64
-          rm host.zip
+          curl -fsSL https://pub-339115a4b0fb49f68be8268e590f7328.r2.dev/build-inputs/offline-host-linux-x64.tar.gz | tar xz -C host/linux-x64
           chmod +x host/linux-x64/Zendoria.Api
 
       - name: Build AppImage

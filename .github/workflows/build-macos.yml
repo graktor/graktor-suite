@@ -26,9 +26,7 @@ jobs:
         run: |
           for arch in x64 arm64; do
             mkdir -p "host/osx-$arch"
-            curl -fsSL "https://pub-339115a4b0fb49f68be8268e590f7328.r2.dev/build-inputs/offline-host-osx-$arch.zip" -o host.zip
-            unzip -q host.zip -d "host/osx-$arch"
-            rm host.zip
+            curl -fsSL "https://pub-339115a4b0fb49f68be8268e590f7328.r2.dev/build-inputs/offline-host-osx-$arch.tar.gz" | tar xz -C "host/osx-$arch"
             chmod +x "host/osx-$arch/Zendoria.Api"
           done
 
